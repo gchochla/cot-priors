@@ -1,6 +1,6 @@
-# Larger Language Models Don't Care How You Think: Why Chain-of-Thought Prompting Fails in Subjective Tasks
+# [ICASSP'25] Larger Language Models Don't Care How You Think: Why Chain-of-Thought Prompting Fails in Subjective Tasks
 
-This repo contains the official implementation of [Larger Language Models Don't Care How You Think: Why Chain-of-Thought Prompting Fails in Subjective Tasks](https://arxiv.org/abs/2409.06173), currently under review.
+This repo contains the official implementation of [Larger Language Models Don't Care How You Think: Why Chain-of-Thought Prompting Fails in Subjective Tasks](https://arxiv.org/abs/2409.06173), ICASSP 2025.
 
 ## Abstract
 
