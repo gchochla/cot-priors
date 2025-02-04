@@ -47,13 +47,6 @@ class ExampleSamplerMixin:
                 searchable=True,
                 metadata=dict(name=True, name_priority=1),
             ),
-            query_label_mode=dict(
-                type=str,
-                help="how to handle query labels in prompt (ablation)",
-                choices=["random", "distribution", "preds"],
-                searchable=True,
-                metadata=dict(name=True, name_priority=1),
-            ),
             cot_randomize=dict(
                 type=bool,
                 help="whether to sample chains of thought randomly",
@@ -82,7 +75,6 @@ class ExampleSamplerMixin:
         sentence_device: str = "cpu",
         sampling_strategy: str | None = None,
         label_mode: str | None = None,
-        query_label_mode: str | None = None,
         cot_randomize: bool = False,
         *args,
         **kwargs,
@@ -102,9 +94,6 @@ class ExampleSamplerMixin:
 
         self._example_sampler_mixin_data["label_mode"] = (
             label_mode or "none"
-        ).lower()
-        self._example_sampler_mixin_data["query_label_mode"] = (
-            query_label_mode or "none"
         ).lower()
         self._example_sampler_mixin_data["cot_randomize"] = cot_randomize
 
@@ -176,50 +165,6 @@ class ExampleSamplerMixin:
                 new_labels = sample["label"]
 
             sample["label"] = new_labels
-
-    def handle_query_label(
-        self,
-        query: dict[str, str | torch.Tensor],
-        is_demo: bool = False,
-        dataset: TextDataset = None,
-    ) -> str:
-        """Returns the label of `query` based on label mode.
-
-        Args:
-            query: query dictionary.
-            is_demo: whether the query is a demonstration as well (ablation).
-            dataset: dataset to use for label handling, e.g. sampling from.
-        """
-
-        if not is_demo:
-            if (
-                self._example_sampler_mixin_data["label_mode"] == "preds"
-                and query["pred_label"] is not None
-            ):
-                return query["pred_label"]
-            return query["label"]
-        else:
-            if (
-                self._example_sampler_mixin_data["query_label_mode"] == "preds"
-                and query["pred_label"] is not None
-            ):
-                return query["pred_label"]
-            elif self._example_sampler_mixin_data["query_label_mode"] != "none":
-
-                assert (
-                    self._example_sampler_mixin_data["query_label_mode"]
-                    != "distribution"
-                    or dataset is not None
-                ), "query_label_mode is 'distribution' but dataset is None"
-
-                query = deepcopy(query)
-                self._handle_labels(
-                    [query],
-                    dataset,
-                    self._example_sampler_mixin_data["query_label_mode"],
-                )
-                return query["label"]
-            return query["label"]
 
     def sample_cot(self, cots: dict[str, str], query_id: str) -> str | None:
         """Samples a chain of thought for `query_id` based on `cot_mode`."""
@@ -809,18 +754,6 @@ class PromptBaseDataset(ExampleSamplerMixin, BaseDataset):
         query = self.test_dataset[index]
         support = self.sample(query)
 
-        if self.include_query_in_demos:
-            demo_query = deepcopy(query)
-            demo_query_label = self.handle_query_label(
-                query,
-                is_demo=True,
-                dataset=self.train_dataset,
-            )
-            demo_query["label"] = demo_query_label
-            support = [demo_query] + support
-        else:
-            demo_query_label = None
-
         prompt = [self.system_prompt or "", self.instruction_prompt or ""]
         prompt.extend(
             [
@@ -841,10 +774,7 @@ class PromptBaseDataset(ExampleSamplerMixin, BaseDataset):
             id=query["id"],
             query=query["text"],
             text=prompt,
-            label=self.handle_query_label(query),
+            label=query["label"],
         )
-
-        if demo_query_label is not None:
-            odict["demo_label"] = demo_query_label
 
         return odict

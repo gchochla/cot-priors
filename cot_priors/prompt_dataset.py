@@ -147,5 +147,5 @@ class PromptDataset(TokenizationMixin, PromptBaseDataset):
             query=query["text"],
             text=self.decode(encoding[0]),
             encoding=dict(input_ids=encoding),
-            label=self.handle_query_label(query),
+            label=query["label"],
         )
